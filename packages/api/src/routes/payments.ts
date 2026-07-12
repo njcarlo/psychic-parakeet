@@ -9,14 +9,18 @@ import { applyPaymentEvent, payMongoAdapter, stripeAdapter, windcaveAdapter, typ
 import { db, getBusinessId, idParamSchema } from './helpers.js';
 
 const router = Router();
-const manualPaymentSchema = z.object({ invoice_id: z.string().uuid(), amount_cents: z.number().int().positive(), currency: z.string().default('NZD'), paid_at: z.coerce.date().optional(), reference: z.string().optional() });
+const manualPaymentSchema = z.object({ invoice_id: z.string().uuid(), amount_cents: z.number().int().positive(), currency: z.string().default('NZD'), provider_payment_id: z.string().optional(), raw_event: z.record(z.string(), z.unknown()).optional() });
 
 router.post('/record', authenticateJwt, tenancy, asyncHandler(async (req, res) => {
   const body = manualPaymentSchema.parse(req.body);
+  const provider_payment_id = body.provider_payment_id ?? `manual:${crypto.randomUUID()}`;
   const result = await query(
-    `INSERT INTO payments (business_id, invoice_id, provider, provider_event_id, amount_cents, currency, status, paid_at, reference)
-     VALUES ($1,$2,'manual_bank',$3,$4,$5,'succeeded',$6,$7) RETURNING *`,
-    [getBusinessId(req), body.invoice_id, `manual:${body.reference ?? crypto.randomUUID()}`, body.amount_cents, body.currency, body.paid_at ?? new Date(), body.reference ?? null],
+    `INSERT INTO payments (business_id, invoice_id, provider, provider_payment_id, amount_cents, currency, status, raw_event, confirmed_by, confirmed_at)
+     VALUES ($1,$2,'manual_bank',$3,$4,$5,'succeeded',$6,$7,now())
+     ON CONFLICT (provider, provider_payment_id) WHERE provider_payment_id IS NOT NULL
+     DO UPDATE SET raw_event = EXCLUDED.raw_event
+     RETURNING *`,
+    [getBusinessId(req), body.invoice_id, provider_payment_id, body.amount_cents, body.currency, body.raw_event ?? {}, req.user!.id],
     db(req)
   );
   res.status(201).json({ data: result.rows[0] });
@@ -26,12 +30,11 @@ router.post('/manual-bank/confirm', authenticateJwt, tenancy, asyncHandler(async
   const body = manualPaymentSchema.parse(req.body);
   const payment = await applyPaymentEvent(getBusinessId(req), {
     provider: 'manual_bank',
-    providerEventId: `ph-bank:${body.reference ?? crypto.randomUUID()}`,
+    provider_payment_id: body.provider_payment_id ?? `ph-bank:${crypto.randomUUID()}`,
     invoiceId: body.invoice_id,
     amountCents: body.amount_cents,
     currency: body.currency,
     status: 'succeeded',
-    paidAt: body.paid_at ?? new Date(),
     raw: body
   });
   res.status(201).json({ data: payment });
@@ -47,6 +50,7 @@ async function handleWebhook(adapter: PaymentProviderAdapter, req: Request, res:
   const businessId = String((req.body as Record<string, any>).businessId ?? (req.body as Record<string, any>).business_id ?? '');
   if (!businessId) throw new AppError(400, 'businessId is required in webhook metadata', 'WEBHOOK_BUSINESS_REQUIRED');
   const payment = await applyPaymentEvent(businessId, event);
+  if (!payment) return res.json({ received: true, ignored: true, reason: 'missing_invoice_id' });
   res.json({ received: true, data: payment });
 }
 

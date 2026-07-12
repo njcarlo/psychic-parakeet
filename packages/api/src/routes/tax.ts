@@ -13,11 +13,11 @@ router.get('/jurisdictions', asyncHandler(async (req, res) => {
   res.json({ data: await getTaxJurisdictions(db(req)) });
 }));
 
-router.patch('/pricing-mode', requireRole('owner', 'admin'), asyncHandler(async (req, res) => {
-  const body = z.object({ pricing_mode: z.enum(['tax_inclusive', 'tax_exclusive']), jurisdiction_code: z.string().optional() }).parse(req.body);
+router.patch('/pricing-mode', requireRole('owner', 'office_admin'), asyncHandler(async (req, res) => {
+  const body = z.object({ pricing_mode: z.enum(['inclusive', 'exclusive']), country_code: z.string().length(2).optional() }).parse(req.body);
   const result = await query(
-    'UPDATE businesses SET pricing_mode = $1, jurisdiction_code = COALESCE($2, jurisdiction_code), updated_at = now() WHERE id = $3 RETURNING id, pricing_mode, jurisdiction_code',
-    [body.pricing_mode, body.jurisdiction_code ?? null, getBusinessId(req)],
+    'UPDATE businesses SET pricing_mode = $1, country_code = COALESCE($2, country_code), updated_at = now() WHERE id = $3 RETURNING id, pricing_mode, country_code',
+    [body.pricing_mode, body.country_code ?? null, getBusinessId(req)],
     db(req)
   );
   res.json({ data: result.rows[0] });

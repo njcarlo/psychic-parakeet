@@ -2,16 +2,15 @@ import crypto from 'node:crypto';
 import { query, withBusinessContext } from '../lib/db.js';
 import { config } from '../lib/config.js';
 
-export type PaymentProvider = 'stripe' | 'windcave' | 'paymongo' | 'manual_bank';
+export type PaymentProvider = 'stripe' | 'windcave' | 'paymongo' | 'manual_bank' | 'poli';
 
 export interface NormalizedPaymentEvent {
   provider: PaymentProvider;
-  providerEventId: string;
+  provider_payment_id: string | null;
   invoiceId?: string;
   amountCents: number;
   currency: string;
-  status: 'succeeded' | 'failed' | 'pending';
-  paidAt?: Date;
+  status: 'succeeded' | 'failed' | 'pending' | 'refunded';
   raw: unknown;
 }
 
@@ -35,7 +34,7 @@ export const stripeAdapter: PaymentProviderAdapter = {
     const object = event.data?.object ?? {};
     return {
       provider: 'stripe',
-      providerEventId: String(event.id),
+      provider_payment_id: String(object.id ?? event.id),
       invoiceId: object.metadata?.invoice_id,
       amountCents: Number(object.amount_received ?? object.amount ?? 0),
       currency: String(object.currency ?? 'nzd').toUpperCase(),
@@ -53,7 +52,7 @@ export const windcaveAdapter: PaymentProviderAdapter = {
     const event = payload as Record<string, any>;
     return {
       provider: 'windcave',
-      providerEventId: String(event.id ?? event.transactionId),
+      provider_payment_id: String(event.transactionId ?? event.id),
       invoiceId: event.invoiceId,
       amountCents: Number(event.amountCents ?? 0),
       currency: String(event.currency ?? 'NZD'),
@@ -71,7 +70,7 @@ export const payMongoAdapter: PaymentProviderAdapter = {
     const data = event.data?.attributes ?? event;
     return {
       provider: 'paymongo',
-      providerEventId: String(event.id ?? data.id),
+      provider_payment_id: String(data.id ?? event.id),
       invoiceId: data.metadata?.invoice_id,
       amountCents: Number(data.amount ?? 0),
       currency: String(data.currency ?? 'PHP'),
@@ -82,13 +81,20 @@ export const payMongoAdapter: PaymentProviderAdapter = {
 };
 
 export async function applyPaymentEvent(businessId: string, event: NormalizedPaymentEvent) {
+  if (!event.invoiceId) return null;
   return withBusinessContext(businessId, async (client) => {
     const inserted = await query(
-      `INSERT INTO payments (business_id, invoice_id, provider, provider_event_id, amount_cents, currency, status, paid_at, raw_event)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-       ON CONFLICT (provider, provider_event_id) DO UPDATE SET raw_event = EXCLUDED.raw_event
+      `INSERT INTO payments (business_id, invoice_id, provider, provider_payment_id, amount_cents, currency, status, raw_event, confirmed_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, CASE WHEN $7 = 'succeeded' THEN now() ELSE NULL END)
+       ON CONFLICT (provider, provider_payment_id) WHERE provider_payment_id IS NOT NULL
+       DO UPDATE SET
+         amount_cents = EXCLUDED.amount_cents,
+         currency = EXCLUDED.currency,
+         status = EXCLUDED.status,
+         raw_event = EXCLUDED.raw_event,
+         confirmed_at = COALESCE(payments.confirmed_at, EXCLUDED.confirmed_at)
        RETURNING *`,
-      [businessId, event.invoiceId ?? null, event.provider, event.providerEventId, event.amountCents, event.currency, event.status, event.paidAt ?? null, event.raw],
+      [businessId, event.invoiceId, event.provider, event.provider_payment_id, event.amountCents, event.currency, event.status, event.raw],
       client
     );
     if (event.invoiceId && event.status === 'succeeded') {
@@ -101,8 +107,9 @@ export async function applyPaymentEvent(businessId: string, event: NormalizedPay
       );
       const row = totals.rows[0];
       if (row) {
-        const status = Number(row.paid_cents) >= Number(row.total_cents) ? 'paid' : 'partial';
-        await query('UPDATE invoices SET status = $1, paid_at = CASE WHEN $1 = \'paid\' THEN now() ELSE paid_at END, updated_at = now() WHERE id = $2 AND business_id = $3', [status, event.invoiceId, businessId], client);
+        if (Number(row.paid_cents) >= Number(row.total_cents)) {
+          await query("UPDATE invoices SET status = 'paid', paid_at = COALESCE(paid_at, now()), updated_at = now() WHERE id = $1 AND business_id = $2", [event.invoiceId, businessId], client);
+        }
       }
     }
     return inserted.rows[0];

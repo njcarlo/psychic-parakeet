@@ -9,13 +9,13 @@ import { buildPatch, db, getBusinessId, idParamSchema, paginationSchema } from '
 const router = Router();
 router.use(publicApiRateLimit, authenticateApiKey, tenancy);
 
-const clientSchema = z.object({ name: z.string().min(1), email: z.string().email().optional(), phone: z.string().optional(), comm_preference: z.enum(['sms', 'email', 'phone', 'none']).default('email') });
-const propertySchema = z.object({ client_id: z.string().uuid(), name: z.string().min(1), address_line1: z.string().min(1), city: z.string().optional(), latitude: z.number().optional(), longitude: z.number().optional() });
-const jobSchema = z.object({ client_id: z.string().uuid(), property_id: z.string().uuid(), scheduled_start: z.coerce.date(), scheduled_end: z.coerce.date(), price_cents: z.number().int().nonnegative().optional(), notes: z.string().optional() });
+const clientSchema = z.object({ name: z.string().min(1), email: z.string().email().optional(), phone: z.string().optional(), comm_preference: z.enum(['sms', 'email', 'both', 'none']).default('email') });
+const propertySchema = z.object({ client_id: z.string().uuid(), label: z.string().min(1), address_line1: z.string().min(1), city: z.string().min(1), lat: z.number().optional(), lng: z.number().optional() });
+const jobSchema = z.object({ client_id: z.string().uuid(), property_id: z.string().uuid(), scheduled_start: z.coerce.date(), scheduled_end: z.coerce.date(), price_cents: z.number().int().nonnegative(), notes: z.string().optional(), client_generated_id: z.string().min(1).optional() });
 
 router.get('/clients', asyncHandler(async (req, res) => {
   const page = paginationSchema.parse(req.query);
-  const result = await query('SELECT id, name, email, phone, comm_preference, created_at, updated_at FROM clients WHERE business_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT $2 OFFSET $3', [getBusinessId(req), page.limit, page.offset], db(req));
+  const result = await query('SELECT id, name, email, phone, comm_preference, created_at, updated_at FROM clients WHERE business_id = $1 AND active = true ORDER BY created_at DESC LIMIT $2 OFFSET $3', [getBusinessId(req), page.limit, page.offset], db(req));
   res.json({ data: result.rows, ...page });
 }));
 
@@ -36,28 +36,31 @@ router.patch('/clients/:id', asyncHandler(async (req, res) => {
 
 router.get('/properties', asyncHandler(async (req, res) => {
   const page = paginationSchema.parse(req.query);
-  const result = await query('SELECT id, client_id, name, address_line1, city, latitude, longitude FROM properties WHERE business_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT $2 OFFSET $3', [getBusinessId(req), page.limit, page.offset], db(req));
+  const result = await query('SELECT id, client_id, label, address_line1, city, lat, lng FROM properties WHERE business_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3', [getBusinessId(req), page.limit, page.offset], db(req));
   res.json({ data: result.rows, ...page });
 }));
 
 router.post('/properties', asyncHandler(async (req, res) => {
   const body = propertySchema.parse(req.body);
-  const result = await query('INSERT INTO properties (business_id, client_id, name, address_line1, city, latitude, longitude) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *', [getBusinessId(req), body.client_id, body.name, body.address_line1, body.city ?? null, body.latitude ?? null, body.longitude ?? null], db(req));
+  const result = await query('INSERT INTO properties (business_id, client_id, label, address_line1, city, lat, lng) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *', [getBusinessId(req), body.client_id, body.label, body.address_line1, body.city, body.lat ?? null, body.lng ?? null], db(req));
   res.status(201).json({ data: result.rows[0] });
 }));
 
 router.get('/jobs', asyncHandler(async (req, res) => {
   const page = paginationSchema.parse(req.query);
-  const result = await query('SELECT id, client_id, property_id, scheduled_start, scheduled_end, status, price_cents, currency FROM jobs WHERE business_id = $1 ORDER BY scheduled_start DESC LIMIT $2 OFFSET $3', [getBusinessId(req), page.limit, page.offset], db(req));
+  const result = await query('SELECT id, client_id, property_id, scheduled_start, scheduled_end, status, price_cents, client_generated_id FROM jobs WHERE business_id = $1 ORDER BY scheduled_start DESC LIMIT $2 OFFSET $3', [getBusinessId(req), page.limit, page.offset], db(req));
   res.json({ data: result.rows, ...page });
 }));
 
 router.post('/jobs', asyncHandler(async (req, res) => {
   const body = jobSchema.parse(req.body);
   const result = await query(
-    `INSERT INTO jobs (business_id, client_id, property_id, scheduled_start, scheduled_end, status, price_cents, notes)
-     VALUES ($1,$2,$3,$4,$5,'scheduled',$6,$7) RETURNING *`,
-    [getBusinessId(req), body.client_id, body.property_id, body.scheduled_start, body.scheduled_end, body.price_cents ?? null, body.notes ?? null],
+    `INSERT INTO jobs (business_id, client_id, property_id, scheduled_start, scheduled_end, status, price_cents, notes, client_generated_id)
+     VALUES ($1,$2,$3,$4,$5,'scheduled',$6,$7,$8)
+     ON CONFLICT (business_id, client_generated_id)
+     DO UPDATE SET client_generated_id = jobs.client_generated_id
+     RETURNING *`,
+    [getBusinessId(req), body.client_id, body.property_id, body.scheduled_start, body.scheduled_end, body.price_cents, body.notes ?? null, body.client_generated_id ?? null],
     db(req)
   );
   res.status(201).json({ data: result.rows[0] });

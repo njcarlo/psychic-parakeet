@@ -1,39 +1,32 @@
-export type PricingMode = 'tax_inclusive' | 'tax_exclusive';
+export * from './constants.js';
+export * from './types.js';
+export * from './tax.js';
+export * from './haversine.js';
 
-export interface TaxJurisdiction {
-  code: string;
-  name: string;
-  rate: number;
-  currency: string;
-}
+import type { PricingMode } from './types.js';
+import { addGstExclusive, splitGstInclusive } from './tax.js';
 
+/** Convenience wrapper: rate is a decimal (0.15 = 15%), pricingMode uses inclusive|exclusive. */
 export interface TaxTotals {
   subtotalCents: number;
   taxCents: number;
   totalCents: number;
 }
 
-export function calculateLineTax(amountCents: number, rate: number, pricingMode: PricingMode): TaxTotals {
-  if (!Number.isFinite(amountCents) || amountCents < 0) {
-    throw new Error('amountCents must be a non-negative number');
-  }
-  if (!Number.isFinite(rate) || rate < 0) {
-    throw new Error('rate must be a non-negative number');
+export function calculateLineTax(
+  amountCents: number,
+  rate: number,
+  pricingMode: PricingMode | 'tax_inclusive' | 'tax_exclusive',
+): TaxTotals {
+  const rateBps = Math.round(rate * 10_000);
+  const mode: PricingMode =
+    pricingMode === 'tax_inclusive' || pricingMode === 'inclusive' ? 'inclusive' : 'exclusive';
+
+  if (mode === 'inclusive') {
+    const { netCents, taxCents } = splitGstInclusive(amountCents, rateBps);
+    return { subtotalCents: netCents, taxCents, totalCents: amountCents };
   }
 
-  if (pricingMode === 'tax_inclusive') {
-    const subtotalCents = Math.round(amountCents / (1 + rate));
-    return {
-      subtotalCents,
-      taxCents: amountCents - subtotalCents,
-      totalCents: amountCents
-    };
-  }
-
-  const taxCents = Math.round(amountCents * rate);
-  return {
-    subtotalCents: amountCents,
-    taxCents,
-    totalCents: amountCents + taxCents
-  };
+  const { grossCents, taxCents } = addGstExclusive(amountCents, rateBps);
+  return { subtotalCents: amountCents, taxCents, totalCents: grossCents };
 }

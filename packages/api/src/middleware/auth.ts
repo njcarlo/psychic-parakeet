@@ -10,7 +10,7 @@ import type { AuthenticatedPrincipal, AuthRole } from '../types/express.js';
 interface TokenPayload extends JwtPayload {
   sub: string;
   businessId: string;
-  role: string;
+  role: AuthRole;
   email?: string;
 }
 
@@ -58,7 +58,7 @@ export const authenticateJwt = asyncHandler(async (req, _res, next) => {
   next();
 });
 
-export function requireRole(...roles: string[]) {
+export function requireRole(...roles: AuthRole[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(new AppError(401, 'Authentication required', 'AUTH_REQUIRED'));
@@ -81,10 +81,9 @@ export const authenticateApiKey = asyncHandler(async (req, _res, next) => {
     id: string;
     business_id: string;
     key_hash: string;
-    role: string | null;
     revoked_at: Date | null;
   }>(
-    `SELECT id, business_id, key_hash, role, revoked_at
+    `SELECT id, business_id, key_hash, revoked_at
        FROM api_keys
       WHERE key_prefix = $1 AND revoked_at IS NULL`,
     [prefix]
@@ -96,7 +95,7 @@ export const authenticateApiKey = asyncHandler(async (req, _res, next) => {
       req.user = {
         id: row.id,
         businessId: row.business_id,
-        role: row.role ?? 'api',
+        role: 'office_admin',
         apiKeyId: row.id
       };
       req.businessId = row.business_id;

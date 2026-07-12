@@ -399,6 +399,9 @@ CREATE INDEX idx_jobs_business_id ON jobs(business_id);
 CREATE INDEX idx_jobs_client_id ON jobs(client_id);
 CREATE INDEX idx_jobs_property_id ON jobs(property_id);
 CREATE INDEX idx_jobs_recurrence_rule_id ON jobs(recurrence_rule_id);
+CREATE UNIQUE INDEX idx_jobs_recurrence_start
+  ON jobs (business_id, recurrence_rule_id, scheduled_start)
+  WHERE recurrence_rule_id IS NOT NULL;
 CREATE INDEX idx_jobs_scheduled_start ON jobs(business_id, scheduled_start);
 CREATE INDEX idx_jobs_status ON jobs(business_id, status);
 CREATE INDEX idx_job_assignments_business_id ON job_assignments(business_id);
@@ -433,6 +436,9 @@ CREATE INDEX idx_invoice_line_items_job_id ON invoice_line_items(job_id);
 CREATE INDEX idx_payments_business_id ON payments(business_id);
 CREATE INDEX idx_payments_invoice_id ON payments(invoice_id);
 CREATE INDEX idx_payments_provider_payment_id ON payments(provider, provider_payment_id);
+CREATE UNIQUE INDEX idx_payments_provider_payment
+  ON payments (provider, provider_payment_id)
+  WHERE provider_payment_id IS NOT NULL;
 CREATE INDEX idx_payments_confirmed_by ON payments(confirmed_by);
 CREATE INDEX idx_message_templates_business_id ON message_templates(business_id);
 CREATE INDEX idx_message_templates_event_type ON message_templates(business_id, event_type);

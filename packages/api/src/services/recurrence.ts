@@ -3,7 +3,7 @@ import { query, withBusinessContext } from '../lib/db.js';
 import type { DbExecutor } from '../lib/db.js';
 import { config } from '../lib/config.js';
 
-export type RecurrenceFrequency = 'weekly' | 'fortnightly' | 'monthly';
+export type RecurrenceFrequency = 'weekly' | 'fortnightly' | 'monthly' | 'custom';
 
 export interface RecurrenceRule {
   id: string;
@@ -11,29 +11,31 @@ export interface RecurrenceRule {
   client_id: string;
   property_id: string;
   frequency: RecurrenceFrequency;
-  interval?: number | null;
-  start_date: string | Date;
-  end_date?: string | Date | null;
+  interval_weeks: number;
+  starts_on: string | Date;
+  ends_on?: string | Date | null;
   day_of_week?: number | null;
-  day_of_month?: number | null;
-  scheduled_time: string;
+  preferred_start_time?: string | null;
   duration_minutes: number;
-  price_cents?: number | null;
-  currency?: string | null;
+  cleaner_id?: string | null;
+  checklist_template_id?: string | null;
+  price_cents: number;
   active: boolean;
   last_generated_until?: string | Date | null;
+  notes?: string | null;
 }
 
 export function nextOccurrenceDate(current: Date, frequency: RecurrenceFrequency, interval = 1): Date {
   if (frequency === 'weekly') return addDays(current, 7 * interval);
   if (frequency === 'fortnightly') return addDays(current, 14 * interval);
+  if (frequency === 'custom') return addDays(current, 7 * interval);
   return addMonths(current, interval);
 }
 
-export function generateOccurrenceDates(rule: Pick<RecurrenceRule, 'frequency' | 'start_date' | 'end_date' | 'last_generated_until' | 'interval'>, horizonUntil: Date): Date[] {
-  const interval = Math.max(1, rule.interval ?? 1);
-  const start = normalizeDateOnly(rule.start_date);
-  const end = rule.end_date ? normalizeDateOnly(rule.end_date) : undefined;
+export function generateOccurrenceDates(rule: Pick<RecurrenceRule, 'frequency' | 'starts_on' | 'ends_on' | 'last_generated_until' | 'interval_weeks'>, horizonUntil: Date): Date[] {
+  const interval = Math.max(1, rule.interval_weeks ?? 1);
+  const start = normalizeDateOnly(rule.starts_on);
+  const end = rule.ends_on ? normalizeDateOnly(rule.ends_on) : undefined;
   const generatedUntil = rule.last_generated_until ? normalizeDateOnly(rule.last_generated_until) : undefined;
   const lowerBound = generatedUntil ? addDays(generatedUntil, 1) : start;
 
@@ -66,17 +68,29 @@ export async function generateJobsForRule(ruleId: string, businessId: string, ho
     let created = 0;
 
     for (const occurrenceDate of dates) {
-      const scheduledStart = combineDateAndTime(occurrenceDate, rule.scheduled_time);
+      const scheduledStart = combineDateAndTime(occurrenceDate, rule.preferred_start_time ?? '09:00');
       const scheduledEnd = new Date(scheduledStart.getTime() + rule.duration_minutes * 60_000);
       const inserted = await query(
-        `INSERT INTO jobs (business_id, client_id, property_id, recurrence_rule_id, scheduled_start, scheduled_end, status, price_cents, currency)
+        `INSERT INTO jobs (business_id, client_id, property_id, recurrence_rule_id, scheduled_start, scheduled_end, status, price_cents, notes)
          VALUES ($1,$2,$3,$4,$5,$6,'scheduled',$7,$8)
-         ON CONFLICT (business_id, recurrence_rule_id, scheduled_start) DO NOTHING
+         ON CONFLICT (business_id, recurrence_rule_id, scheduled_start)
+           WHERE recurrence_rule_id IS NOT NULL
+           DO NOTHING
          RETURNING id`,
-        [businessId, rule.client_id, rule.property_id, rule.id, scheduledStart, scheduledEnd, rule.price_cents ?? null, rule.currency ?? 'NZD'],
+        [businessId, rule.client_id, rule.property_id, rule.id, scheduledStart, scheduledEnd, rule.price_cents, rule.notes ?? null],
         client
       );
       created += inserted.rowCount ?? 0;
+      const jobId = inserted.rows[0]?.id as string | undefined;
+      if (jobId && rule.cleaner_id) {
+        await query(
+          `INSERT INTO job_assignments (business_id, job_id, user_id)
+           VALUES ($1,$2,$3)
+           ON CONFLICT (job_id, user_id) DO NOTHING`,
+          [businessId, jobId, rule.cleaner_id],
+          client
+        );
+      }
     }
 
     await query(

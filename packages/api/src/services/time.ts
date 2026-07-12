@@ -23,13 +23,13 @@ export function addMonths(input: Date, months: number): Date {
   return date;
 }
 
-export function haversineKm(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }): number {
+export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const earthRadiusKm = 6371;
   const toRadians = (value: number) => (value * Math.PI) / 180;
-  const dLat = toRadians(b.latitude - a.latitude);
-  const dLon = toRadians(b.longitude - a.longitude);
-  const lat1 = toRadians(a.latitude);
-  const lat2 = toRadians(b.latitude);
+  const dLat = toRadians(b.lat - a.lat);
+  const dLon = toRadians(b.lng - a.lng);
+  const lat1 = toRadians(a.lat);
+  const lat2 = toRadians(b.lat);
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
   return 2 * earthRadiusKm * Math.asin(Math.sqrt(h));
 }

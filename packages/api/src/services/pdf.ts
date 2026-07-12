@@ -6,12 +6,12 @@ export interface InvoicePdfData {
 }
 
 export function renderInvoiceHtml(data: InvoicePdfData): string {
-  const invoiceNumber = String(data.invoice.invoice_number ?? data.invoice.id ?? 'draft');
+  const invoiceNumber = String(data.invoice.invoice_number_display ?? data.invoice.invoice_number ?? data.invoice.id ?? 'draft');
   const rows = data.lines.map((line) => `
     <tr>
       <td>${String(line.description ?? '')}</td>
       <td>${String(line.quantity ?? 1)}</td>
-      <td>${String(line.unit_amount_cents ?? 0)}</td>
+      <td>${String(line.unit_price_cents ?? 0)}</td>
       <td>${String(line.line_total_cents ?? 0)}</td>
     </tr>`).join('');
   return `<!doctype html>

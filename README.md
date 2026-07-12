@@ -23,8 +23,8 @@ Key differentiators:
 ├── packages/
 │   ├── api/       # Express API, workers, service modules
 │   ├── shared/    # Shared types, tax helpers, constants
-│   ├── web/       # Planned web client workspace
-│   └── mobile/    # Planned mobile workspace
+│   ├── web/       # Admin dashboard workspace
+│   └── mobile/    # Cleaner PWA workspace
 ├── docker-compose.yml
 └── package.json
 ```
@@ -108,8 +108,8 @@ npm test
   BullMQ workers, and OpenAPI document.
 - `@cleanops/shared`: Shared constants, tax helpers, geographic utilities, and
   cross-platform TypeScript types.
-- `@cleanops/web`: Planned browser app workspace.
-- `@cleanops/mobile`: Planned cleaner mobile app workspace.
+- `@cleanops/web`: Implemented admin dashboard workspace.
+- `@cleanops/mobile`: Implemented cleaner PWA workspace.
 
 ## Environment variables
 

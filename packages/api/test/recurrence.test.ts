@@ -6,9 +6,9 @@ describe('generateOccurrenceDates', () => {
     const dates = generateOccurrenceDates(
       {
         frequency: 'weekly',
-        start_date: '2026-01-01',
+        starts_on: '2026-01-01',
         last_generated_until: '2026-01-08',
-        interval: 1
+        interval_weeks: 1
       },
       new Date('2026-01-29')
     );
@@ -20,8 +20,8 @@ describe('generateOccurrenceDates', () => {
     const dates = generateOccurrenceDates(
       {
         frequency: 'monthly',
-        start_date: '2026-01-31',
-        interval: 1
+        starts_on: '2026-01-31',
+        interval_weeks: 1
       },
       new Date('2026-03-31')
     );

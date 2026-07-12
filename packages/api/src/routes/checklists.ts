@@ -8,15 +8,14 @@ import { buildPatch, db, getBusinessId, idParamSchema, paginationSchema } from '
 const router = Router();
 router.use(authenticateJwt, tenancy);
 
-const itemSchema = z.object({ label: z.string().min(1), required: z.boolean().default(false), sort_order: z.number().int().default(0) });
-const templateSchema = z.object({ name: z.string().min(1), description: z.string().optional(), items: z.array(itemSchema).default([]) });
+const itemSchema = z.object({ label: z.string().min(1), requires_photo: z.boolean().default(false), sort_order: z.number().int().default(0) });
+const templateSchema = z.object({ name: z.string().min(1), job_type: z.string().optional(), items: z.array(itemSchema).default([]) });
 const templatePatchSchema = templateSchema.omit({ items: true }).partial();
 const jobChecklistParamSchema = z.object({ jobId: z.string().uuid() });
 const resultSchema = z.object({
   job_id: z.string().uuid(),
   checklist_item_id: z.string().uuid(),
   completed: z.boolean(),
-  notes: z.string().optional(),
   photo_url: z.string().url().optional(),
   client_generated_id: z.string().min(1).optional()
 });
@@ -54,9 +53,9 @@ router.get('/templates', asyncHandler(async (req, res) => {
 router.post('/templates', asyncHandler(async (req, res) => {
   const body = templateSchema.parse(req.body);
   const businessId = getBusinessId(req);
-  const template = await query('INSERT INTO checklist_templates (business_id, name, description) VALUES ($1,$2,$3) RETURNING *', [businessId, body.name, body.description ?? null], db(req));
+  const template = await query('INSERT INTO checklist_templates (business_id, name, job_type) VALUES ($1,$2,$3) RETURNING *', [businessId, body.name, body.job_type ?? null], db(req));
   for (const item of body.items) {
-    await query('INSERT INTO checklist_items (business_id, template_id, label, required, sort_order) VALUES ($1,$2,$3,$4,$5)', [businessId, template.rows[0].id, item.label, item.required, item.sort_order], db(req));
+    await query('INSERT INTO checklist_items (business_id, template_id, label, requires_photo, sort_order) VALUES ($1,$2,$3,$4,$5)', [businessId, template.rows[0].id, item.label, item.requires_photo, item.sort_order], db(req));
   }
   res.status(201).json({ data: template.rows[0] });
 }));
@@ -64,8 +63,8 @@ router.post('/templates', asyncHandler(async (req, res) => {
 router.patch('/templates/:id', asyncHandler(async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   const body = templatePatchSchema.parse(req.body);
-  const patch = buildPatch(body, ['name', 'description']);
-  const result = await query(`UPDATE checklist_templates SET ${patch.fields.join(', ')}, updated_at = now() WHERE id = $${patch.values.length + 1} AND business_id = $${patch.values.length + 2} RETURNING *`, [...patch.values, id, getBusinessId(req)], db(req));
+  const patch = buildPatch(body, ['name', 'job_type']);
+  const result = await query(`UPDATE checklist_templates SET ${patch.fields.join(', ')} WHERE id = $${patch.values.length + 1} AND business_id = $${patch.values.length + 2} RETURNING *`, [...patch.values, id, getBusinessId(req)], db(req));
   if (!result.rows[0]) throw new AppError(404, 'Checklist template not found', 'CHECKLIST_TEMPLATE_NOT_FOUND');
   res.json({ data: result.rows[0] });
 }));
@@ -73,7 +72,7 @@ router.patch('/templates/:id', asyncHandler(async (req, res) => {
 router.post('/templates/:id/items', asyncHandler(async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   const body = itemSchema.parse(req.body);
-  const result = await query('INSERT INTO checklist_items (business_id, template_id, label, required, sort_order) VALUES ($1,$2,$3,$4,$5) RETURNING *', [getBusinessId(req), id, body.label, body.required, body.sort_order], db(req));
+  const result = await query('INSERT INTO checklist_items (business_id, template_id, label, requires_photo, sort_order) VALUES ($1,$2,$3,$4,$5) RETURNING *', [getBusinessId(req), id, body.label, body.requires_photo, body.sort_order], db(req));
   res.status(201).json({ data: result.rows[0] });
 }));
 
@@ -85,9 +84,16 @@ router.post('/results', asyncHandler(async (req, res) => {
     if (existing.rows[0]) return res.json({ data: existing.rows[0], idempotent: true });
   }
   const result = await query(
-    `INSERT INTO job_checklist_results (business_id, job_id, checklist_item_id, completed, notes, photo_url, client_generated_id, submitted_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-    [businessId, body.job_id, body.checklist_item_id, body.completed, body.notes ?? null, body.photo_url ?? null, body.client_generated_id ?? null, req.user!.id],
+    `INSERT INTO job_checklist_results (business_id, job_id, checklist_item_id, completed, completed_at, completed_by, photo_url, client_generated_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     ON CONFLICT (job_id, checklist_item_id) DO UPDATE SET
+       completed = EXCLUDED.completed,
+       completed_at = EXCLUDED.completed_at,
+       completed_by = EXCLUDED.completed_by,
+       photo_url = EXCLUDED.photo_url,
+       client_generated_id = COALESCE(EXCLUDED.client_generated_id, job_checklist_results.client_generated_id)
+     RETURNING *`,
+    [businessId, body.job_id, body.checklist_item_id, body.completed, body.completed ? new Date() : null, req.user!.id, body.photo_url ?? null, body.client_generated_id ?? null],
     db(req)
   );
   res.status(201).json({ data: result.rows[0] });

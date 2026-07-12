@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  color: #12312d;
+  background: #eefbf8;
+  font-family: "Sora", ui-sans-serif, system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(20, 184, 166, 0.2), transparent 34rem),
+    radial-gradient(circle at 92% 12%, rgba(94, 234, 212, 0.28), transparent 28rem),
+    linear-gradient(160deg, #f7fffd 0%, #e5faf5 48%, #d9f3ef 100%);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.safe-bottom {
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+.glass-card {
+  border: 1px solid rgba(15, 118, 110, 0.13);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 22px 70px rgba(15, 118, 110, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.teal-button {
+  min-height: 3.25rem;
+  border-radius: 1.25rem;
+  background: #0f766e;
+  color: white;
+  font-weight: 800;
+  box-shadow: 0 16px 36px rgba(15, 118, 110, 0.24);
+}
+
+.teal-button:disabled {
+  cursor: not-allowed;
+  background: #94a3b8;
+  box-shadow: none;
+}
+
+.soft-input {
+  min-height: 3rem;
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  background: rgba(255, 255, 255, 0.82);
+  padding: 0.75rem 1rem;
+  outline: none;
+}
+
+.soft-input:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.18);
+}

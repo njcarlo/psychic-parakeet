@@ -8,9 +8,10 @@ import { buildPatch, db, getBusinessId, idParamSchema, paginationSchema } from '
 const router = Router();
 router.use(authenticateJwt, tenancy);
 
-const availabilitySchema = z.object({ cleaner_id: z.string().uuid(), day_of_week: z.number().int().min(0).max(6), start_time: z.string(), end_time: z.string() });
+const availabilitySchema = z.object({ cleaner_id: z.string().uuid().optional(), day_of_week: z.number().int().min(0).max(6), start_time: z.string(), end_time: z.string() });
 const timeOffSchema = z.object({ start_at: z.coerce.date(), end_at: z.coerce.date(), reason: z.string().optional() }).refine((v) => v.end_at > v.start_at, 'end_at must be after start_at');
 const decisionSchema = z.object({ decision_notes: z.string().optional() });
+const canManageAvailability = (role: string | undefined) => role === 'owner' || role === 'admin' || role === 'office';
 
 router.get('/', asyncHandler(async (req, res) => {
   const page = paginationSchema.parse(req.query);
@@ -18,12 +19,13 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json({ data: result.rows, ...page });
 }));
 
-router.post('/', requireRole('owner', 'admin', 'office'), asyncHandler(async (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const body = availabilitySchema.parse(req.body);
+  const cleanerId = canManageAvailability(req.user?.role) ? body.cleaner_id ?? req.user!.id : req.user!.id;
   const result = await query(
     `INSERT INTO cleaner_availability (business_id, cleaner_id, day_of_week, start_time, end_time)
      VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-    [getBusinessId(req), body.cleaner_id, body.day_of_week, body.start_time, body.end_time],
+    [getBusinessId(req), cleanerId, body.day_of_week, body.start_time, body.end_time],
     db(req)
   );
   res.status(201).json({ data: result.rows[0] });

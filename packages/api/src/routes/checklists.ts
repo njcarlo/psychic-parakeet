@@ -11,6 +11,7 @@ router.use(authenticateJwt, tenancy);
 const itemSchema = z.object({ label: z.string().min(1), required: z.boolean().default(false), sort_order: z.number().int().default(0) });
 const templateSchema = z.object({ name: z.string().min(1), description: z.string().optional(), items: z.array(itemSchema).default([]) });
 const templatePatchSchema = templateSchema.omit({ items: true }).partial();
+const jobChecklistParamSchema = z.object({ jobId: z.string().uuid() });
 const resultSchema = z.object({
   job_id: z.string().uuid(),
   checklist_item_id: z.string().uuid(),
@@ -19,6 +20,30 @@ const resultSchema = z.object({
   photo_url: z.string().url().optional(),
   client_generated_id: z.string().min(1).optional()
 });
+
+router.get('/jobs/:jobId', asyncHandler(async (req, res) => {
+  const { jobId } = jobChecklistParamSchema.parse(req.params);
+  const businessId = getBusinessId(req);
+  const items = await query(
+    `SELECT ci.*
+       FROM jobs j
+       JOIN recurrence_rules rr ON rr.id = j.recurrence_rule_id
+       JOIN checklist_items ci ON ci.template_id = rr.checklist_template_id
+      WHERE j.id = $1 AND j.business_id = $2
+      ORDER BY ci.sort_order ASC, ci.label ASC`,
+    [jobId, businessId],
+    db(req)
+  );
+  const results = await query(
+    `SELECT *
+       FROM job_checklist_results
+      WHERE business_id = $1 AND job_id = $2
+      ORDER BY completed_at DESC NULLS LAST`,
+    [businessId, jobId],
+    db(req)
+  );
+  res.json({ data: { items: items.rows, results: results.rows } });
+}));
 
 router.get('/templates', asyncHandler(async (req, res) => {
   const page = paginationSchema.parse(req.query);

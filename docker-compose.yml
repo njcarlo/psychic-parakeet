@@ -1,0 +1,97 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cleanops
+      POSTGRES_PASSWORD: cleanops
+      POSTGRES_DB: cleanops
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/002_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cleanops -d cleanops"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    image: cleanops-api:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://cleanops:cleanops@postgres:5432/cleanops
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-change-me
+      PORT: 3001
+      CORS_ORIGIN: http://localhost:5173,http://localhost:5174
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./db/migrations:/app/db/migrations:ro
+
+  worker:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    image: cleanops-api:local
+    command: ["node", "packages/api/dist/workers/index.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://cleanops:cleanops@postgres:5432/cleanops
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-change-me
+      PORT: 3001
+      CORS_ORIGIN: http://localhost:5173,http://localhost:5174
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    volumes:
+      - ./db/migrations:/app/db/migrations:ro
+
+  # web:
+  #   build:
+  #     context: .
+  #     dockerfile: packages/web/Dockerfile
+  #   ports:
+  #     - "5173:5173"
+  #   depends_on:
+  #     - api
+
+  # mobile:
+  #   build:
+  #     context: .
+  #     dockerfile: packages/mobile/Dockerfile
+  #   ports:
+  #     - "5174:5174"
+  #   depends_on:
+  #     - api
+
+volumes:
+  postgres-data:
+  redis-data:

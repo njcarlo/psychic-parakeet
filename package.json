@@ -1,0 +1,13 @@
+{
+  "name": "cleanops",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @cleanops/shared && npm run build --workspace @cleanops/api",
+    "test": "npm run test --workspace @cleanops/api"
+  }
+}

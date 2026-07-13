@@ -11,6 +11,9 @@ CleanOps is an npm-workspaces monorepo (`packages/api`, `web`, `mobile`, `shared
 - Dev servers (run from repo root): `npm run dev:api` (:3001), `npm run dev:web` (:5173), `npm run dev:mobile` (:5174). The web/mobile Vite configs proxy `/api` and `/v1` to `http://localhost:3001`, so the API must be running for the frontends to work.
 - Redis and the BullMQ worker are optional in dev: `packages/api/.env` sets `MVP_MODE=true` and `REDIS_OPTIONAL=true`, so the API stays up without Redis.
 
+### Testing preference
+- The maintainer prefers manual desktop/GUI testing for UI-affecting changes: exercise the running app in Chrome (computer-use) and capture a screen recording as evidence, in addition to build/type checks.
+
 ### Lint / test / build
 - No linter is configured in any workspace.
 - Tests: `npm test` (only `packages/api` has tests, via vitest); they do not require a running DB.

@@ -31,7 +31,10 @@ const envSchema = z.object({
   PAYMONGO_WEBHOOK_SECRET: z.string().optional(),
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
-  POSTMARK_SERVER_TOKEN: z.string().optional()
+  POSTMARK_SERVER_TOKEN: z.string().optional(),
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  FIREBASE_STORAGE_BUCKET: z.string().optional(),
+  FIREBASE_PROJECT_ID: z.string().optional()
 });
 
 const parsed = envSchema.safeParse(process.env);

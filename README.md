@@ -59,9 +59,10 @@ Services:
 
 On the first Postgres boot, Compose mounts:
 
-- `db/migrations/001_initial_schema.sql` as
-  `/docker-entrypoint-initdb.d/001_initial_schema.sql`
-- `db/seed.sql` as `/docker-entrypoint-initdb.d/002_seed.sql`
+- `db/migrations/001_initial_schema.sql`
+- `db/migrations/002_recurrence_idempotency.sql`
+- `db/migrations/003_device_push_tokens.sql`
+- `db/seed.sql`
 
 The seed creates the demo account `admin@harbourshine.nz` with password
 `password123`, plus a cleaner, clients, properties, checklist, and recurrence.
@@ -93,6 +94,8 @@ Create a local database and apply schema/seed:
 ```sh
 createdb cleanops
 psql postgres://cleanops:cleanops@localhost:5432/cleanops -f db/migrations/001_initial_schema.sql
+psql postgres://cleanops:cleanops@localhost:5432/cleanops -f db/migrations/002_recurrence_idempotency.sql
+psql postgres://cleanops:cleanops@localhost:5432/cleanops -f db/migrations/003_device_push_tokens.sql
 psql postgres://cleanops:cleanops@localhost:5432/cleanops -f db/seed.sql
 ```
 
@@ -112,6 +115,13 @@ Build and test all workspaces that currently expose matching scripts:
 npm run build
 npm test
 ```
+
+## Firebase (optional)
+
+Firebase complements CleanOps for static Hosting, checklist-photo Storage via
+API-minted signed URLs, and FCM push delivery for SOS alerts. Postgres remains
+the source of truth for jobs, clients, invoices, device push tokens, and other
+business data. See [FIREBASE.md](./FIREBASE.md) for setup and deployment steps.
 
 ## Packages
 

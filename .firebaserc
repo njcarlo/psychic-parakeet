@@ -1,0 +1,11 @@
+{
+  "projects": { "default": "cleanops-demo" },
+  "targets": {
+    "cleanops-demo": {
+      "hosting": {
+        "web": ["cleanops-web"],
+        "mobile": ["cleanops-mobile"]
+      }
+    }
+  }
+}

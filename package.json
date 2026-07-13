@@ -12,6 +12,7 @@
     "dev:mobile": "npm run dev --workspace @cleanops/mobile",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "worker": "npm run worker --workspace @cleanops/api"
+    "worker": "npm run worker --workspace @cleanops/api",
+    "firebase:deploy": "npm run build --workspace @cleanops/web && npm run build --workspace @cleanops/mobile && firebase deploy --only hosting,storage"
   }
 }

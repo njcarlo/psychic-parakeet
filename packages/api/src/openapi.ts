@@ -28,6 +28,8 @@ export const openApiDocument = {
     '/payments/record': { post: { summary: 'Record manual payment', security: [{ bearerAuth: [] }] } },
     '/messages': { post: { summary: 'Send templated client message', security: [{ bearerAuth: [] }] } },
     '/sos/trigger': { post: { summary: 'Trigger SOS event', security: [{ bearerAuth: [] }] } },
+    '/uploads/checklist-photo': { post: { summary: 'Create signed checklist photo upload URL', security: [{ bearerAuth: [] }] } },
+    '/devices/push-token': { post: { summary: 'Register device push token', security: [{ bearerAuth: [] }] }, delete: { summary: 'Unregister device push token', security: [{ bearerAuth: [] }] } },
     '/availability': { get: { summary: 'List cleaner availability', security: [{ bearerAuth: [] }] }, post: { summary: 'Create availability', security: [{ bearerAuth: [] }] } },
     '/earnings': { get: { summary: 'Get cleaner earnings', security: [{ bearerAuth: [] }] } },
     '/tax/jurisdictions': { get: { summary: 'List tax jurisdictions', security: [{ bearerAuth: [] }] } },

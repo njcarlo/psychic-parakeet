@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CleanOps">
+  <rect width="512" height="512" rx="112" fill="#0f766e"/>
+  <circle cx="368" cy="146" r="42" fill="#99f6e4" opacity="0.9"/>
+  <path fill="#f0fdfa" d="M132 330c52-10 82-43 98-102 5-18 31-18 36 0 16 59 46 92 98 102 18 4 18 30 0 34-52 10-82 43-98 102-5 18-31 18-36 0-16-59-46-92-98-102-18-4-18-30 0-34Z"/>
+  <path fill="#ccfbf1" d="M115 114h164c14 0 25 11 25 25v28H90v-28c0-14 11-25 25-25Zm-7 87h178l-26 82H134l-26-82Z"/>
+</svg>

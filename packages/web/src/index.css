@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #062f27;
+  background: #eef9ff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.ocean-grid {
+  background:
+    radial-gradient(circle at top left, rgba(20, 163, 116, 0.22), transparent 34rem),
+    radial-gradient(circle at 90% 10%, rgba(125, 211, 252, 0.28), transparent 30rem),
+    linear-gradient(135deg, #eef9ff 0%, #f7fdff 46%, #e3f8f1 100%);
+}
+
+.shell-pattern {
+  background-image:
+    linear-gradient(rgba(11, 110, 79, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11, 110, 79, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}

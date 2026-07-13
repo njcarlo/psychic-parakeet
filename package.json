@@ -1,0 +1,17 @@
+{
+  "name": "cleanops",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace @cleanops/api",
+    "dev:web": "npm run dev --workspace @cleanops/web",
+    "dev:mobile": "npm run dev --workspace @cleanops/mobile",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "worker": "npm run worker --workspace @cleanops/api"
+  }
+}

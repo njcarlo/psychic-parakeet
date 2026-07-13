@@ -30,7 +30,7 @@ export function InvoicesPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const jobsForClient = useMemo(
-    () => data?.jobs.filter((job) => !clientId || job.client_id === clientId) ?? [],
+    () => data?.jobs.filter((job) => job.status === 'completed' && (!clientId || job.client_id === clientId)) ?? [],
     [clientId, data]
   );
 
@@ -52,7 +52,7 @@ export function InvoicesPage() {
       await api.post<ApiItem<Invoice>>('/invoices', {
         client_id: clientId,
         job_ids: selectedJobs,
-        due_date: dueDate || undefined,
+        due_at: dueDate || undefined,
         currency: 'NZD'
       });
       setModalOpen(false);
@@ -70,9 +70,9 @@ export function InvoicesPage() {
   return (
     <>
       <PageHeader
-        title="Invoices"
-        description="Create invoices from job selections and track draft, sent, paid, overdue, and void statuses."
-        actions={<Button onClick={() => setModalOpen(true)}>Create invoice</Button>}
+        title="Bill completed cleans"
+        description="Select a client, choose completed jobs, and create a simple invoice for the MVP demo."
+        actions={<Button onClick={() => setModalOpen(true)}>Bill completed cleans</Button>}
       />
       {error ? <Alert tone="error">{error}</Alert> : null}
       {loading ? <Panel>Loading invoices...</Panel> : null}
@@ -80,7 +80,7 @@ export function InvoicesPage() {
         <DataTable
           items={data.invoices}
           getKey={(invoice) => invoice.id}
-          empty="No invoices yet."
+          empty="No invoices yet. Complete a job, then bill the clean from here."
           columns={[
             {
               header: 'Invoice',
@@ -101,7 +101,7 @@ export function InvoicesPage() {
         />
       ) : null}
 
-      <Modal title="Create invoice from jobs" open={modalOpen} onClose={() => setModalOpen(false)}>
+      <Modal title="Bill completed cleans" open={modalOpen} onClose={() => setModalOpen(false)}>
         <form className="space-y-4" onSubmit={submit}>
           {formError ? <Alert tone="error">{formError}</Alert> : null}
           <Field label="Client">
@@ -127,7 +127,7 @@ export function InvoicesPage() {
           <div>
             <p className="mb-2 text-sm font-bold text-coastal-900">Jobs</p>
             <div className="max-h-72 space-y-2 overflow-y-auto rounded-3xl border border-coastal-100 bg-white/60 p-3">
-              {jobsForClient.length === 0 ? <p className="text-sm text-slate-600">No jobs for this client.</p> : null}
+              {jobsForClient.length === 0 ? <p className="text-sm text-slate-600">No completed jobs for this client yet.</p> : null}
               {jobsForClient.map((job) => (
                 <label key={job.id} className="flex cursor-pointer items-start gap-3 rounded-2xl bg-white/70 p-3 text-sm">
                   <input

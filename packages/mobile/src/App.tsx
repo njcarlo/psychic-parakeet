@@ -32,6 +32,8 @@ type Navigate = (path: string) => void;
 
 const ACTIVE_JOBS_KEY = 'cleanops_active_jobs';
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const cleanerDemoEmail = 'mia@harbourshine.nz';
+const demoPassword = 'password123';
 
 function useRoute(): [string, Navigate] {
   const [path, setPath] = useState(window.location.pathname);
@@ -109,6 +111,21 @@ function statusLabel(status: string): string {
   return status.replaceAll('_', ' ');
 }
 
+function statusStyle(status: string): string {
+  switch (status) {
+    case 'completed':
+      return 'bg-emerald-100 text-emerald-800';
+    case 'in_progress':
+      return 'bg-amber-100 text-amber-800';
+    case 'cancelled':
+    case 'skipped':
+    case 'no_show':
+      return 'bg-rose-100 text-rose-700';
+    default:
+      return 'bg-teal-100 text-teal-800';
+  }
+}
+
 function getCoordinates(): Promise<GeolocationCoordinates | null> {
   if (!navigator.geolocation) return Promise.resolve(null);
   return new Promise((resolve) => {
@@ -161,7 +178,7 @@ function AppShell({
       <header className="mb-5 flex items-center justify-between gap-3">
         <button className="text-left" onClick={() => navigate('/')}>
           <p className="text-xs font-bold uppercase tracking-[0.28em] text-teal-700">CleanOps</p>
-          <h1 className="text-2xl font-black tracking-tight text-slate-950">Cleaner</h1>
+          <h1 className="text-2xl font-black tracking-tight text-slate-950">Cleaner MVP</h1>
         </button>
         <div className="flex items-center gap-2">
           <span className="rounded-full bg-white/80 px-3 py-2 text-[11px] font-bold text-teal-800 shadow-sm">
@@ -176,11 +193,10 @@ function AppShell({
       <main className="flex-1">{children}</main>
 
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md px-4">
-        <div className="glass-card mb-3 grid grid-cols-4 gap-1 rounded-[1.6rem] p-2">
-          <NavItem active={path === '/'} label="Jobs" onClick={() => navigate('/')} />
-          <NavItem active={path === '/availability'} label="Avail" onClick={() => navigate('/availability')} />
-          <NavItem active={path === '/earnings'} label="Pay" onClick={() => navigate('/earnings')} />
-          <NavItem active={false} label="SOS" onClick={() => undefined} muted />
+        <div className="glass-card mb-3 grid grid-cols-3 gap-1 rounded-[1.6rem] p-2">
+          <NavItem active={path === '/'} label="Today" onClick={() => navigate('/')} />
+          <NavItem active={path === '/earnings'} label="Earnings" onClick={() => navigate('/earnings')} />
+          <NavItem active={path === '/availability'} label="Availability" onClick={() => navigate('/availability')} />
         </div>
       </nav>
 
@@ -212,8 +228,8 @@ function NavItem({ active, label, onClick, muted }: { active: boolean; label: st
 }
 
 function LoginPage({ onLogin }: { onLogin: (session: UserSession) => void }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(cleanerDemoEmail);
+  const [password, setPassword] = useState(demoPassword);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -236,8 +252,13 @@ function LoginPage({ onLogin }: { onLogin: (session: UserSession) => void }) {
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-8">
       <section className="glass-card rounded-[2rem] p-6">
         <p className="text-xs font-bold uppercase tracking-[0.32em] text-teal-700">CleanOps</p>
-        <h1 className="mt-2 text-4xl font-black leading-tight text-slate-950">Cleaner login</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">Open your job list, clock in with GPS, and keep working when coverage drops.</p>
+        <h1 className="mt-2 text-5xl font-black leading-tight text-slate-950">Cleaner MVP</h1>
+        <p className="mt-3 text-base font-semibold leading-7 text-slate-700">
+          Today&apos;s jobs, clock in/out, checklists, and audited access notes for the Harbour Shine demo.
+        </p>
+        <div className="mt-5 rounded-3xl bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900">
+          Demo: {cleanerDemoEmail} / {demoPassword}
+        </div>
 
         <form className="mt-7 space-y-4" onSubmit={submit}>
           <label className="block">
@@ -309,7 +330,7 @@ function JobsPage({ session, navigate }: { session: UserSession; navigate: Navig
       </div>
       {notice ? <p className="rounded-2xl bg-white/80 px-4 py-3 text-sm font-semibold text-teal-900">{notice}</p> : null}
       {loading && jobs.length === 0 ? <p className="rounded-3xl bg-white/70 p-5 text-sm font-semibold text-slate-600">Loading schedule...</p> : null}
-      <JobList jobs={todaysJobs} empty="No jobs scheduled for today." navigate={navigate} />
+      <JobList jobs={todaysJobs} empty="No jobs today - ask office to schedule you." navigate={navigate} />
       {tomorrowsJobs.length > 0 ? (
         <div className="pt-2">
           <h3 className="mb-3 text-xl font-black text-slate-900">Tomorrow</h3>
@@ -331,7 +352,7 @@ function JobList({ jobs, empty, navigate }: { jobs: CachedJob[]; empty: string; 
               <p className="text-lg font-black leading-6 text-slate-950">{job.address}</p>
               <p className="mt-2 text-sm font-semibold text-slate-500">{job.client_name}</p>
             </div>
-            <span className="rounded-full bg-teal-50 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-teal-700">
+            <span className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ${statusStyle(job.status)}`}>
               {statusLabel(job.status)}
             </span>
           </div>
@@ -451,9 +472,9 @@ function JobDetailPage({ session, jobId, onPendingChange }: { session: UserSessi
         <h2 className="mt-2 text-3xl font-black leading-tight text-slate-950">{job.address}</h2>
         <p className="mt-2 text-sm font-semibold text-slate-500">{job.client_name}</p>
         {job.notes ? <p className="mt-4 rounded-2xl bg-teal-50 p-3 text-sm font-semibold text-teal-900">{job.notes}</p> : null}
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <button className="teal-button" onClick={handleClock}>
-            {clockedIn ? 'Clock out' : 'Clock in'}
+        <div className="mt-5 space-y-3">
+          <button className="teal-button min-h-16 w-full text-base" onClick={handleClock}>
+            {clockedIn ? 'Clock Out' : 'Clock In'}
           </button>
           <a className="flex min-h-13 items-center justify-center rounded-[1.25rem] bg-white text-sm font-black text-teal-800 shadow-sm" href={directionsUrl} target="_blank" rel="noreferrer">
             Directions
@@ -729,7 +750,7 @@ function SosButton({ session, jobId, onSynced }: { session: UserSession; jobId?:
   return (
     <>
       <button
-        className="fixed bottom-28 right-4 z-40 rounded-full border border-teal-200 bg-white/85 px-4 py-3 text-xs font-black text-teal-800 shadow-lg shadow-teal-900/10 backdrop-blur"
+        className="fixed bottom-28 right-4 z-40 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-[11px] font-black text-slate-500 shadow-lg shadow-teal-900/10 backdrop-blur"
         onClick={() => void send()}
       >
         SOS

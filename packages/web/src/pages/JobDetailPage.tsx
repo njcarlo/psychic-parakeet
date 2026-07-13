@@ -9,7 +9,7 @@ import { currency, dateTime, propertyName, shortId } from '../lib/format';
 import { useAsyncData } from '../lib/hooks';
 import type { ApiItem, ApiList, ChecklistTemplate, Client, Job, JobStatus, Property } from '../lib/types';
 
-const statuses: JobStatus[] = ['scheduled', 'assigned', 'in_progress', 'completed', 'cancelled', 'no_show'];
+const statuses: JobStatus[] = ['scheduled', 'in_progress', 'completed', 'cancelled', 'skipped'];
 
 async function loadJobDetail(id: string) {
   const [job, clients, properties, templates] = await Promise.all([
@@ -37,7 +37,7 @@ export function JobDetailPage() {
   useEffect(() => {
     if (data?.job) {
       setStatus(data.job.status);
-      setCleanerIds((data.job.cleaner_ids ?? []).join(', '));
+      setCleanerIds((data.job.user_ids ?? data.job.cleaner_ids ?? []).join(', '));
     }
   }, [data]);
 
@@ -67,7 +67,7 @@ export function JobDetailPage() {
     setMessage(null);
     setActionError(null);
     try {
-      await api.post(`/jobs/${data.job.id}/assignments`, { cleanerIds: ids });
+      await api.post(`/jobs/${data.job.id}/assignments`, { user_ids: ids });
       setMessage('Assignments saved.');
       await reload();
     } catch (err) {

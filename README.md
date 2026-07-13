@@ -1,5 +1,16 @@
 # CleanOps
 
+## MVP quick start
+
+See [MVP.md](./MVP.md) for the demo path and MVP scope.
+
+```sh
+./scripts/mvp-setup.sh
+npm run dev:api
+npm run dev:web   # :5173
+npm run dev:mobile # :5174
+```
+
 CleanOps is a private cleaning-operations monorepo for building a ZenMaid-style
 platform focused first on New Zealand and then the Philippines. The product
 combines booking and recurring job generation, cleaner scheduling, checklists,

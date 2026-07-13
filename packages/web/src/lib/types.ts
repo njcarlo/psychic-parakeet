@@ -83,6 +83,7 @@ export type Job = {
   created_at?: string;
   updated_at?: string;
   cleaner_ids?: string[];
+  user_ids?: string[];
 };
 
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'void' | 'overdue';
@@ -169,6 +170,8 @@ export type ChecklistTemplate = {
 
 export type DashboardStats = {
   todaysJobs: number;
+  completedToday: number;
+  openInvoices: number;
   openSos: number;
   overdueInvoices: number;
   overdueAmountCents: number;

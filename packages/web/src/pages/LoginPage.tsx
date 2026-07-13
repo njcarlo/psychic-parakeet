@@ -5,12 +5,15 @@ import { BrandMark } from '../components/AppShell';
 import { Alert, Button, Field, Input } from '../components/Ui';
 import { useAuth } from '../context/AuthContext';
 
+const demoEmail = 'admin@harbourshine.nz';
+const demoPassword = 'password123';
+
 export function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(demoEmail);
+  const [password, setPassword] = useState(demoPassword);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -38,12 +41,12 @@ export function LoginPage() {
           <section>
             <BrandMark />
             <div className="mt-16 max-w-3xl">
-              <p className="text-sm font-extrabold uppercase tracking-[0.28em] text-coastal-600">Coastal NZ cleaning operations</p>
+              <p className="text-sm font-extrabold uppercase tracking-[0.28em] text-coastal-600">CleanOps MVP</p>
               <h1 className="mt-5 font-display text-6xl font-bold leading-[0.95] text-coastal-900 sm:text-7xl">
-                CleanOps
+                Run today&apos;s cleans with confidence.
               </h1>
               <p className="mt-6 max-w-2xl text-xl leading-8 text-slate-700">
-                Run today&apos;s work, invoices, clients, team availability, and urgent SOS alerts from one calm office dashboard.
+                A focused office command centre for clients, schedules, cleaner assignments, and invoicing.
               </p>
               <div className="mt-8 flex flex-wrap gap-3 text-sm font-bold text-coastal-800">
                 <span className="rounded-full bg-white/70 px-4 py-2">Deep teal operations</span>
@@ -56,7 +59,18 @@ export function LoginPage() {
           <section className="rounded-[2rem] border border-white/80 bg-white/70 p-6 shadow-soft backdrop-blur-xl sm:p-8">
             <div className="mb-6">
               <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-coastal-600">Office sign in</p>
-              <h2 className="mt-2 font-display text-3xl font-bold text-coastal-900">Welcome back</h2>
+              <h2 className="mt-2 font-display text-3xl font-bold text-coastal-900">Harbour Shine demo</h2>
+            </div>
+            <div className="mb-5 rounded-3xl border border-emerald-100 bg-emerald-50/80 p-4 text-sm text-emerald-950">
+              <p className="font-black uppercase tracking-[0.18em] text-emerald-700">Demo credentials</p>
+              <div className="mt-3 space-y-2">
+                <p>
+                  <span className="font-bold">Office demo:</span> {demoEmail} / {demoPassword}
+                </p>
+                <p>
+                  <span className="font-bold">Cleaner app:</span> use the mobile app with mia@harbourshine.nz / {demoPassword}
+                </p>
+              </div>
             </div>
             <form className="space-y-4" onSubmit={onSubmit}>
               {error ? <Alert tone="error">{error}</Alert> : null}

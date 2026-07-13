@@ -167,16 +167,16 @@ export async function fetchAccessNotes(token: string, propertyId: string): Promi
 export async function clockIn(token: string, jobId: string, coords: GeolocationCoordinates | null) {
   return postOrQueue<ApiData<unknown>>('clock-in', '/api/time-entries/clock-in', {
     job_id: jobId,
-    latitude: coords?.latitude,
-    longitude: coords?.longitude
+    lat: coords?.latitude,
+    lng: coords?.longitude
   }, token);
 }
 
 export async function clockOut(token: string, jobId: string, coords: GeolocationCoordinates | null) {
   return postOrQueue<ApiData<unknown>>('clock-out', '/api/time-entries/clock-out', {
     job_id: jobId,
-    latitude: coords?.latitude,
-    longitude: coords?.longitude
+    lat: coords?.latitude,
+    lng: coords?.longitude
   }, token);
 }
 
@@ -191,7 +191,12 @@ export async function triggerSos(
   token: string,
   body: { job_id?: string; latitude?: number; longitude?: number; message?: string }
 ) {
-  return postOrQueue<ApiData<unknown>>('sos', '/api/sos/trigger', body, token);
+  return postOrQueue<ApiData<unknown>>('sos', '/api/sos/trigger', {
+    job_id: body.job_id,
+    lat: body.latitude,
+    lng: body.longitude,
+    notes: body.message
+  }, token);
 }
 
 export async function submitAvailability(

@@ -9,9 +9,25 @@ import { db, getBusinessId } from './helpers.js';
 const router = Router();
 router.use(authenticateJwt, tenancy);
 
-const gpsSchema = z.object({ lat: z.number().optional(), lng: z.number().optional() });
-const clockInSchema = gpsSchema.extend({ job_id: z.string().uuid(), client_generated_id: z.string().min(1).optional() });
-const clockOutSchema = gpsSchema.extend({ time_entry_id: z.string().uuid().optional(), job_id: z.string().uuid().optional(), client_generated_id: z.string().min(1).optional() });
+const gpsSchema = z
+  .object({
+    lat: z.number().optional(),
+    lng: z.number().optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional()
+  })
+  .transform((value) => ({
+    lat: value.lat ?? value.latitude,
+    lng: value.lng ?? value.longitude
+  }));
+const clockInSchema = gpsSchema.and(z.object({ job_id: z.string().uuid(), client_generated_id: z.string().min(1).optional() }));
+const clockOutSchema = gpsSchema.and(
+  z.object({
+    time_entry_id: z.string().uuid().optional(),
+    job_id: z.string().uuid().optional(),
+    client_generated_id: z.string().min(1).optional()
+  })
+);
 
 async function computeMileageKm(req: Express.Request, jobId: string, cleanerId: string): Promise<number | null> {
   const current = await query<{ lat: number | null; lng: number | null }>(

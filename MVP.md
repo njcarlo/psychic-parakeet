@@ -19,7 +19,16 @@
 
 ## Demo script (happy path)
 
-1. Login office -> see today's jobs on dashboard
-2. Open schedule -> assign if needed
-3. Login cleaner on mobile -> clock in -> view access notes -> complete checklist -> clock out
-4. Office marks job completed (or auto on clock-out if wired) -> create invoice -> mark sent
+1. Login office (`admin@harbourshine.nz` / `password123`) → see today's seeded jobs on dashboard
+2. Open schedule → create/assign jobs as needed
+3. Login cleaner on mobile (`mia@harbourshine.nz` / `password123`) → clock in → view access notes → complete checklist → clock out
+4. Clock-out auto-marks the job completed → office creates invoice → mark sent → record manual payment
+
+## Quick start
+
+```sh
+./scripts/mvp-setup.sh
+npm run dev:api
+npm run dev:web     # http://localhost:5173
+npm run dev:mobile  # http://localhost:5174
+```

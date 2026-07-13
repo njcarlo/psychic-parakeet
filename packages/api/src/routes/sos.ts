@@ -8,7 +8,22 @@ import { db, getBusinessId, idParamSchema, paginationSchema } from './helpers.js
 const router = Router();
 router.use(authenticateJwt, tenancy);
 
-const triggerSchema = z.object({ job_id: z.string().uuid().optional(), lat: z.number().optional(), lng: z.number().optional(), notes: z.string().optional() });
+const triggerSchema = z
+  .object({
+    job_id: z.string().uuid().optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+    notes: z.string().optional(),
+    message: z.string().optional()
+  })
+  .transform((value) => ({
+    job_id: value.job_id,
+    lat: value.lat ?? value.latitude,
+    lng: value.lng ?? value.longitude,
+    notes: value.notes ?? value.message
+  }));
 const resolveSchema = z.object({ notes: z.string().min(1).optional() });
 
 async function notifyOfficeAdmins(_businessId: string, _sosId: string): Promise<void> {

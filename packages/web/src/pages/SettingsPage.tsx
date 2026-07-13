@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { PageHeader } from '../components/PageHeader';
 import { Alert, Button, Field, Input, Panel, Select } from '../components/Ui';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
+import { isFirebaseConfigured } from '../lib/firebase';
 import { useAsyncData } from '../lib/hooks';
 import type { ApiItem, ApiList, TaxJurisdiction } from '../lib/types';
 
@@ -21,6 +22,17 @@ export function SettingsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [pushStatus, setPushStatus] = useState(readPushStatus);
+
+  useEffect(() => {
+    const updateStatus = () => setPushStatus(readPushStatus());
+    window.addEventListener('focus', updateStatus);
+    document.addEventListener('visibilitychange', updateStatus);
+    return () => {
+      window.removeEventListener('focus', updateStatus);
+      document.removeEventListener('visibilitychange', updateStatus);
+    };
+  }, []);
 
   async function saveTax(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,6 +94,21 @@ export function SettingsPage() {
         </Panel>
 
         <Panel>
+          <h2 className="font-display text-2xl font-bold text-coastal-900">Push notifications</h2>
+          <div className="mt-5 rounded-3xl bg-white/70 p-5">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Status</p>
+            <p className="mt-2 text-lg font-bold text-coastal-900">{pushStatus}</p>
+            <p className="mt-2 text-sm text-slate-600">
+              {pushStatus === 'not configured'
+                ? 'Add the VITE_FIREBASE_* variables to enable FCM registration.'
+                : pushStatus === 'enabled'
+                  ? 'This browser has granted notification permission for office SOS alerts.'
+                  : 'Firebase is configured, but browser notification permission is not enabled.'}
+            </p>
+          </div>
+        </Panel>
+
+        <Panel>
           <h2 className="font-display text-2xl font-bold text-coastal-900">Tax jurisdiction</h2>
           {loading ? <p className="mt-4 text-sm text-slate-600">Loading jurisdictions...</p> : null}
           <form className="mt-5 space-y-4" onSubmit={saveTax}>
@@ -119,6 +146,12 @@ export function SettingsPage() {
       </div>
     </>
   );
+}
+
+function readPushStatus(): 'enabled' | 'disabled' | 'not configured' {
+  if (!isFirebaseConfigured()) return 'not configured';
+  if (typeof Notification === 'undefined') return 'disabled';
+  return Notification.permission === 'granted' ? 'enabled' : 'disabled';
 }
 
 const fallbackJurisdictions: TaxJurisdiction[] = [

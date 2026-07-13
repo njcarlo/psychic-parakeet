@@ -11,6 +11,7 @@ import {
   localDateKey,
   loadSession,
   login,
+  registerDevicePushToken,
   saveSession,
   submitAvailability,
   submitChecklistResult,
@@ -18,6 +19,7 @@ import {
   todayAndTomorrowKeys,
   triggerSos
 } from './lib/api';
+import { registerPushToken } from './lib/firebase';
 import {
   cacheJobs,
   getCachedJob,
@@ -26,6 +28,7 @@ import {
   installQueueSync,
   syncQueue
 } from './lib/offline';
+import { uploadChecklistPhoto } from './lib/photos';
 import type { CachedJob, ChecklistItem, ChecklistResult, EarningsSummary, UserSession } from './lib/types';
 
 type Navigate = (path: string) => void;
@@ -134,15 +137,6 @@ function getCoordinates(): Promise<GeolocationCoordinates | null> {
       () => resolve(null),
       { enableHighAccuracy: true, maximumAge: 30_000, timeout: 10_000 }
     );
-  });
-}
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
   });
 }
 
@@ -446,7 +440,7 @@ function JobDetailPage({ session, jobId, onPendingChange }: { session: UserSessi
     setMessage(`Saving ${item.label}...`);
     try {
       const file = photoByItem[item.id];
-      const photoUrl = file ? await fileToDataUrl(file) : undefined;
+      const photoUrl = file ? await uploadChecklistPhoto(session.token, jobId, file) : undefined;
       const result = await submitChecklistResult(session.token, {
         job_id: jobId,
         checklist_item_id: item.id,
@@ -776,6 +770,11 @@ export default function App() {
     const cleanup = installQueueSync(() => loadSession()?.token ?? null, setPendingCount);
     void getQueueCount().then(setPendingCount);
     return cleanup;
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) return;
+    void registerPushToken((pushToken) => registerDevicePushToken(session.token, pushToken, 'web')).catch(() => undefined);
   }, [session]);
 
   const refreshPendingCount = () => {

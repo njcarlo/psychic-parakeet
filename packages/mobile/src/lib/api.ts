@@ -74,6 +74,13 @@ export async function login(email: string, password: string): Promise<UserSessio
   });
 }
 
+export async function registerDevicePushToken(token: string, pushToken: string, platform: 'web' | 'ios' | 'android' = 'web'): Promise<void> {
+  await apiJson('/devices/push-token', token, {
+    method: 'POST',
+    body: JSON.stringify({ token: pushToken, platform })
+  });
+}
+
 function dateRangeForSchedule(): { start: string; end: string } {
   const start = new Date();
   start.setHours(0, 0, 0, 0);

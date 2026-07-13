@@ -1,5 +1,9 @@
+import { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../lib/api';
+import { onForegroundPushMessage, registerPushToken } from '../lib/firebase';
+import type { AuthUser } from '../lib/types';
 
 const primaryNavItems = [
   { to: '/', label: 'Dashboard' },
@@ -13,6 +17,20 @@ const laterNavItems = [
   { to: '/sos', label: 'SOS' },
   { to: '/settings', label: 'Settings' }
 ];
+
+const pushRoles = new Set(['owner', 'office_admin']);
+
+function canRegisterOfficePush(user: AuthUser | null): boolean {
+  return Boolean(user && pushRoles.has(user.role));
+}
+
+function showForegroundPushNotification(payload: { notification?: { title?: string; body?: string }; data?: Record<string, string> }) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const title = payload.notification?.title ?? payload.data?.title ?? 'CleanOps alert';
+  const body = payload.notification?.body ?? payload.data?.body ?? 'New CleanOps notification';
+  new Notification(title, { body });
+}
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
@@ -38,6 +56,31 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
 export function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!canRegisterOfficePush(user)) return;
+
+    void registerPushToken(async (token) => {
+      await api.post('/devices/push-token', { token, platform: 'web' });
+    }).catch(() => undefined);
+  }, [user]);
+
+  useEffect(() => {
+    if (!canRegisterOfficePush(user)) return undefined;
+
+    let unsubscribe: (() => void) | null = null;
+    let cancelled = false;
+
+    void onForegroundPushMessage(showForegroundPushNotification).then((nextUnsubscribe) => {
+      if (cancelled) nextUnsubscribe?.();
+      else unsubscribe = nextUnsubscribe;
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [user]);
 
   return (
     <div className="ocean-grid min-h-screen text-slate-800">

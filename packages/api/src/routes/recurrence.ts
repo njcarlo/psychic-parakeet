@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { query } from '../lib/db.js';
 import { AppError, asyncHandler } from '../lib/errors.js';
 import { authenticateJwt, tenancy } from '../middleware/auth.js';
-import { recurrenceGenerateQueue } from '../workers/queues.js';
+import { enqueueRecurrenceGenerate } from '../workers/queues.js';
 import { buildPatch, db, getBusinessId, idParamSchema, paginationSchema } from './helpers.js';
 
 const router = Router();
@@ -28,7 +28,7 @@ const recurrenceSchema = z.object({
 const recurrencePatchSchema = recurrenceSchema.partial();
 
 async function enqueueRule(ruleId: string, businessId: string): Promise<void> {
-  await recurrenceGenerateQueue.add('generate-rule', { ruleId, businessId }, { jobId: `recurrence:${businessId}:${ruleId}` });
+  await enqueueRecurrenceGenerate({ ruleId, businessId });
 }
 
 router.get('/', asyncHandler(async (req, res) => {

@@ -9,8 +9,11 @@ const router = Router();
 router.use(authenticateJwt, tenancy);
 
 const jobStatus = z.enum(['scheduled', 'in_progress', 'completed', 'cancelled', 'skipped']);
-const createJobSchema = z.object({ client_id: z.string().uuid(), property_id: z.string().uuid(), recurrence_rule_id: z.string().uuid().optional(), scheduled_start: z.coerce.date(), scheduled_end: z.coerce.date(), status: jobStatus.default('scheduled'), price_cents: z.number().int().nonnegative(), notes: z.string().optional(), client_generated_id: z.string().min(1).optional() }).refine((value) => value.scheduled_end > value.scheduled_start, 'scheduled_end must be after scheduled_start');
-const patchJobSchema = createJobSchema.omit({ client_id: true, property_id: true, recurrence_rule_id: true }).partial();
+const jobBaseSchema = z.object({ client_id: z.string().uuid(), property_id: z.string().uuid(), recurrence_rule_id: z.string().uuid().optional(), scheduled_start: z.coerce.date(), scheduled_end: z.coerce.date(), status: jobStatus.default('scheduled'), price_cents: z.number().int().nonnegative(), notes: z.string().optional(), client_generated_id: z.string().min(1).optional() });
+const createJobSchema = jobBaseSchema.refine((value) => value.scheduled_end > value.scheduled_start, 'scheduled_end must be after scheduled_start');
+const patchJobSchema = jobBaseSchema.omit({ client_id: true, property_id: true, recurrence_rule_id: true }).partial().refine((value) => (
+  !value.scheduled_start || !value.scheduled_end || value.scheduled_end > value.scheduled_start
+), 'scheduled_end must be after scheduled_start');
 const assignSchema = z.object({ user_ids: z.array(z.string().uuid()).min(1) });
 const calendarSchema = z.object({ start: z.coerce.date(), end: z.coerce.date() });
 const gapsSchema = z.object({ user_id: z.string().uuid(), date: z.coerce.date(), duration_minutes: z.number().int().min(15).max(720) });

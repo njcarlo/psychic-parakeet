@@ -1,8 +1,9 @@
 import { Worker } from 'bullmq';
 import { generateDueRecurringJobs, generateJobsForRule } from '../services/recurrence.js';
-import { bullMqConnectionOptions, recurrenceGenerateQueue, type RecurrenceGenerateJob, type ReminderSendJob, type WebhookRetryJob } from './queues.js';
+import { bullMqConnectionOptions, getRecurrenceGenerateQueue, type RecurrenceGenerateJob, type ReminderSendJob, type WebhookRetryJob } from './queues.js';
 
 const connection = bullMqConnectionOptions();
+const recurrenceGenerateQueue = getRecurrenceGenerateQueue();
 
 const recurrenceWorker = new Worker<RecurrenceGenerateJob, unknown, string>(
   'recurrence-generate',

@@ -387,3 +387,94 @@ ON CONFLICT (id) DO UPDATE SET
   active = EXCLUDED.active,
   starts_on = EXCLUDED.starts_on,
   notes = EXCLUDED.notes;
+
+INSERT INTO jobs (
+  id,
+  business_id,
+  client_id,
+  property_id,
+  recurrence_rule_id,
+  scheduled_start,
+  scheduled_end,
+  status,
+  price_cents,
+  notes,
+  client_generated_id
+) VALUES
+  (
+    'cccccccc-cccc-4ccc-8ccc-ccccccccccc1',
+    '11111111-1111-4111-8111-111111111111',
+    '44444444-4444-4444-8444-444444444444',
+    '66666666-6666-4666-8666-666666666666',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    (CURRENT_DATE + TIME '09:00') AT TIME ZONE 'Pacific/Auckland',
+    (CURRENT_DATE + TIME '11:00') AT TIME ZONE 'Pacific/Auckland',
+    'scheduled',
+    9500,
+    'Demo today: Harper home clean. Use key safe by side gate; dog is friendly.',
+    'demo-harper-today'
+  ),
+  (
+    'dddddddd-dddd-4ddd-8ddd-ddddddddddd1',
+    '11111111-1111-4111-8111-111111111111',
+    '55555555-5555-4555-8555-555555555555',
+    '77777777-7777-4777-8777-777777777777',
+    NULL,
+    (CURRENT_DATE + TIME '13:00') AT TIME ZONE 'Pacific/Auckland',
+    (CURRENT_DATE + TIME '15:00') AT TIME ZONE 'Pacific/Auckland',
+    'scheduled',
+    12000,
+    'Demo today: Kowhai office suite clean. Check in with security desk for visitor badge.',
+    'demo-kowhai-today'
+  ),
+  (
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1',
+    '11111111-1111-4111-8111-111111111111',
+    '44444444-4444-4444-8444-444444444444',
+    '66666666-6666-4666-8666-666666666666',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    ((CURRENT_DATE + 1) + TIME '09:00') AT TIME ZONE 'Pacific/Auckland',
+    ((CURRENT_DATE + 1) + TIME '11:00') AT TIME ZONE 'Pacific/Auckland',
+    'scheduled',
+    9500,
+    'Demo tomorrow: Harper home follow-up clean. Restock bathroom consumables if low.',
+    'demo-harper-tomorrow'
+  )
+ON CONFLICT (id) DO UPDATE SET
+  business_id = EXCLUDED.business_id,
+  client_id = EXCLUDED.client_id,
+  property_id = EXCLUDED.property_id,
+  recurrence_rule_id = EXCLUDED.recurrence_rule_id,
+  scheduled_start = EXCLUDED.scheduled_start,
+  scheduled_end = EXCLUDED.scheduled_end,
+  status = EXCLUDED.status,
+  price_cents = EXCLUDED.price_cents,
+  notes = EXCLUDED.notes,
+  client_generated_id = EXCLUDED.client_generated_id;
+
+INSERT INTO job_assignments (
+  id,
+  business_id,
+  job_id,
+  user_id
+) VALUES
+  (
+    'ffffffff-ffff-4fff-8fff-fffffffffff1',
+    '11111111-1111-4111-8111-111111111111',
+    'cccccccc-cccc-4ccc-8ccc-ccccccccccc1',
+    '33333333-3333-4333-8333-333333333333'
+  ),
+  (
+    'ffffffff-ffff-4fff-8fff-fffffffffff2',
+    '11111111-1111-4111-8111-111111111111',
+    'dddddddd-dddd-4ddd-8ddd-ddddddddddd1',
+    '33333333-3333-4333-8333-333333333333'
+  ),
+  (
+    'ffffffff-ffff-4fff-8fff-fffffffffff3',
+    '11111111-1111-4111-8111-111111111111',
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1',
+    '33333333-3333-4333-8333-333333333333'
+  )
+ON CONFLICT (job_id, user_id) DO UPDATE SET
+  business_id = EXCLUDED.business_id;

@@ -55,6 +55,12 @@ router.post('/clock-in', asyncHandler(async (req, res) => {
     [businessId, body.job_id, req.user!.id, body.lat ?? null, body.lng ?? null, gpsMissing, mileageKm, body.client_generated_id ?? null],
     db(req)
   );
+  await query(
+    `UPDATE jobs SET status = 'in_progress', updated_at = now()
+      WHERE id = $1 AND business_id = $2 AND status = 'scheduled'`,
+    [body.job_id, businessId],
+    db(req)
+  );
   res.status(201).json({ data: result.rows[0] });
 }));
 
@@ -71,6 +77,12 @@ router.post('/clock-out', asyncHandler(async (req, res) => {
     db(req)
   );
   if (!result.rows[0]) throw new AppError(404, 'Open time entry not found', 'TIME_ENTRY_NOT_FOUND');
+  await query(
+    `UPDATE jobs SET status = 'completed', updated_at = now()
+      WHERE id = $1 AND business_id = $2 AND status IN ('in_progress', 'scheduled')`,
+    [result.rows[0].job_id, getBusinessId(req)],
+    db(req)
+  );
   res.json({ data: result.rows[0] });
 }));
 

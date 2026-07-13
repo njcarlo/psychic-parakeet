@@ -208,15 +208,20 @@ export function SchedulePage() {
       </div>
       {loading ? <Panel>Loading schedule...</Panel> : null}
 
-      <div className="grid gap-4 xl:grid-cols-7">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 xl:grid-cols-7">
         {days.map(({ date, jobs }) => (
-          <Panel key={date.toISOString()} className="min-h-64">
-            <div className="mb-4">
-              <p className="font-display text-xl font-bold text-coastal-900">{dateOnly(date.toISOString())}</p>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-coastal-600">{jobs.length} jobs</p>
+          <section
+            key={date.toISOString()}
+            className="flex min-h-32 flex-col rounded-3xl border border-white/70 bg-white/72 p-3 shadow-sm sm:p-4"
+          >
+            <div className="mb-3 flex items-baseline justify-between gap-2">
+              <p className="font-display text-base font-bold leading-tight text-coastal-900">{dateOnly(date.toISOString())}</p>
+              <p className="shrink-0 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-coastal-600">{jobs.length} jobs</p>
             </div>
-            <div className="space-y-3">
-              {jobs.length === 0 ? <p className="rounded-2xl bg-sky-50 p-3 text-sm text-slate-500">Open</p> : null}
+            <div className="space-y-2">
+              {jobs.length === 0 ? (
+                <p className="rounded-xl bg-sky-50 px-3 py-2 text-xs text-slate-500">Open</p>
+              ) : null}
               {jobs.map((job) => (
                 <ScheduleJob
                   key={job.id}
@@ -228,7 +233,7 @@ export function SchedulePage() {
                 />
               ))}
             </div>
-          </Panel>
+          </section>
         ))}
       </div>
 
@@ -345,14 +350,17 @@ function ScheduleJob({
     }
   }
 
+  const compactControl =
+    'w-full rounded-lg border border-coastal-100 bg-white/90 px-2 py-1 text-xs text-slate-800 outline-none ring-coastal-500/20 transition focus:border-coastal-500 focus:ring-2';
+
   return (
-    <article className="rounded-2xl border border-coastal-100 bg-white/75 p-3 text-sm">
+    <article className="rounded-xl border border-coastal-100 bg-white/75 p-2.5 text-sm">
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <Link to={`/jobs/${job.id}`} className="font-bold text-coastal-900 hover:text-coastal-600">
+        <div className="min-w-0">
+          <Link to={`/jobs/${job.id}`} className="block truncate font-bold text-coastal-900 hover:text-coastal-600">
             {client?.name ?? `Job ${shortId(job.id)}`}
           </Link>
-          <p className="text-xs text-slate-500">
+          <p className="truncate text-xs text-slate-500">
             {property ? `${propertyName(property)} - ` : ''}
             {timeOnly(job.scheduled_start)}-{timeOnly(job.scheduled_end)}
           </p>
@@ -360,22 +368,36 @@ function ScheduleJob({
         <StatusBadge status={job.status} />
       </div>
 
-      <div className="mt-3 space-y-2">
-        <Field label="Status">
-          <Select value={job.status} onChange={(event) => void onStatus(job, event.target.value as JobStatus)}>
-            {statuses.map((status) => (
-              <option key={status} value={status}>
-                {status.replaceAll('_', ' ')}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Cleaner IDs">
-          <Input value={cleanerIds} onChange={(event) => setCleanerIds(event.target.value)} placeholder="comma-separated UUIDs" />
-        </Field>
-        <Button type="button" onClick={() => void submitAssignment()} disabled={assigning} className="w-full">
-          {assigning ? 'Assigning...' : 'Save assignment'}
-        </Button>
+      <div className="mt-2 space-y-1.5">
+        <select
+          aria-label="Job status"
+          value={job.status}
+          onChange={(event) => void onStatus(job, event.target.value as JobStatus)}
+          className={compactControl}
+        >
+          {statuses.map((status) => (
+            <option key={status} value={status}>
+              {status.replaceAll('_', ' ')}
+            </option>
+          ))}
+        </select>
+        <div className="flex gap-1.5">
+          <input
+            aria-label="Cleaner IDs"
+            value={cleanerIds}
+            onChange={(event) => setCleanerIds(event.target.value)}
+            placeholder="Cleaner IDs"
+            className={`${compactControl} min-w-0 flex-1`}
+          />
+          <button
+            type="button"
+            onClick={() => void submitAssignment()}
+            disabled={assigning}
+            className="shrink-0 rounded-lg bg-coastal-600 px-2.5 py-1 text-xs font-bold text-white transition hover:bg-coastal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {assigning ? '...' : 'Assign'}
+          </button>
+        </div>
       </div>
     </article>
   );

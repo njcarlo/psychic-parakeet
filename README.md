@@ -1,5 +1,8 @@
 # CleanOps
 
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for a full system architecture overview and the
+outstanding work / roadmap.
+
 ## MVP quick start
 
 See [MVP.md](./MVP.md) for the demo path and MVP scope.
